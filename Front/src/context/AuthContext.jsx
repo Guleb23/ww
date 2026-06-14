@@ -6,7 +6,10 @@ const AuthContext = createContext(null);
 const saveSession = (data, username) => {
   localStorage.setItem("accessToken", data.accessToken);
   localStorage.setItem("refreshToken", data.refreshToken);
-  const userInfo = { username };
+  const userInfo = {
+    username: data.username ?? username,
+    id: data.userId,
+  };
   localStorage.setItem("user", JSON.stringify(userInfo));
   return userInfo;
 };

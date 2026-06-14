@@ -34,7 +34,9 @@ namespace jjj.Services
             return new TokenResponseDto
             {
                 AccessToken = CreateToken(user),
-                RefreshToken = await GenerateAndSaveRefreshTokenAsync(user)
+                RefreshToken = await GenerateAndSaveRefreshTokenAsync(user),
+                UserId = user.Id,
+                Username = user.Username
             };
         }
 

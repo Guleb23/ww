@@ -39,7 +39,7 @@ namespace jjj.Services.WorkoutsServies
             return workouts.Select(MapToDto).ToList();
         }
 
-        public async Task<WorkoutDto> CreateWorkoutAsync(CreateWorkoutRequest request)
+        public async Task<WorkoutDto> CreateWorkoutAsync(CreateWorkoutRequest request, Guid userId)
         {
             var workout = new Workout
             {
@@ -47,7 +47,7 @@ namespace jjj.Services.WorkoutsServies
                 Name = request.Name,
                 Description = request.Description,
                 ImageUrl = request.ImageUrl,
-                UserId = request.UserId,
+                UserId = userId,
                 CreatedDate = DateTime.UtcNow
             };
 

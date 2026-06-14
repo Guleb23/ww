@@ -7,7 +7,7 @@ namespace jjj.Services.WorkoutsServies
         Task<List<WorkoutDto>> GetAllWorkoutsAsync();
         Task<WorkoutDto?> GetWorkoutByIdAsync(Guid id);
         Task<List<WorkoutDto>> GetWorkoutsByUserIdAsync(Guid userId);
-        Task<WorkoutDto> CreateWorkoutAsync(CreateWorkoutRequest request);
+        Task<WorkoutDto> CreateWorkoutAsync(CreateWorkoutRequest request, Guid userId);
         Task<WorkoutDto?> UpdateWorkoutAsync(Guid id, UpdateWorkoutRequest request);
         Task<bool> DeleteWorkoutAsync(Guid id);
         Task<List<WorkoutDto>> SearchWorkoutsAsync(string searchTerm);

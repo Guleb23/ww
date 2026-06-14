@@ -22,7 +22,7 @@ export const WorkoutsPage = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await axiosClient.get("/api/workouts");
+      const res = await axiosClient.get("/api/workouts/me");
       setItems(res.data);
     } catch (err) {
       console.error(err);
@@ -45,7 +45,7 @@ export const WorkoutsPage = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await axiosClient.get("/api/workouts/search", {
+      const res = await axiosClient.get("/api/workouts/me/search", {
         params: { term: search },
       });
       setItems(res.data);
@@ -103,25 +103,10 @@ export const WorkoutsPage = () => {
           imageUrl: form.imageUrl || null,
         });
       } else {
-        // Т.к. backend требует userId, а мы его явно не знаем из токена,
-        // временно попросим пользователя ввести GUID в prompt, если нет сохранённого.
-        let storedUserId = localStorage.getItem("userId");
-        if (!storedUserId) {
-          storedUserId = window.prompt(
-            "Enter your UserId (GUID) from backend to create workouts:"
-          );
-          if (!storedUserId) {
-            setSaving(false);
-            return;
-          }
-          localStorage.setItem("userId", storedUserId);
-        }
-
         await axiosClient.post("/api/workouts", {
           name: form.name,
           description: form.description,
           imageUrl: form.imageUrl || null,
-          userId: storedUserId,
         });
       }
       resetForm();
@@ -205,7 +190,7 @@ export const WorkoutsPage = () => {
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2 pt-2 border-t border-slate-800/50">
                     <span className="flex items-center gap-1">
-                      👤 {w.userId ? w.userId.substring(0, 8) + "..." : "н/д"}
+                      👤 {user?.username ?? "вы"}
                     </span>
                     <span className="flex items-center gap-1">
                       📅 {w.createdDate
@@ -301,12 +286,6 @@ export const WorkoutsPage = () => {
                   : "✨ Создать тренировку"}
               </button>
             </div>
-            {!user && (
-              <p className="mt-2 text-[11px] text-amber-400">
-                Вы не авторизованы. Тренировки всё равно будут созданы, если вы введёте
-                корректный UserId (GUID) из бэкенда, когда появится запрос.
-              </p>
-            )}
           </form>
         </section>
       </div>
