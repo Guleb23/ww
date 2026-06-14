@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: jwt-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: randomdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-20033002}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d randomdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: ./JwtAuthDotNet9
+      dockerfile: Dockerfile
+    container_name: jwt-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5190
+      ConnectionStrings__UserDatabase: Host=db;Port=5432;Database=randomdb;Username=postgres;Password=${POSTGRES_PASSWORD:-20033002}
+      AppSettings__Token: ${JWT_TOKEN:-MySuperSecureAndRandomKeyThatLooksJustAwesomeAndNeedsToBeVeryVeryLong!!!111oneeleven}
+      AppSettings__Issuer: ${JWT_ISSUER:-MyAwesomeApp}
+      AppSettings__Audience: ${JWT_AUDIENCE:-MyAwesomeAudience}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./Front
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+    container_name: jwt-front
+    restart: unless-stopped
+    ports:
+      - "${FRONT_PORT:-80}:80"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
