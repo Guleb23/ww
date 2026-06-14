@@ -19,6 +19,7 @@ export const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
     setLoading(true);
     try {
@@ -26,7 +27,11 @@ export const LoginPage = () => {
       navigate(from, { replace: true });
     } catch (err) {
       console.error(err);
-      setError("Неверное имя пользователя или пароль");
+      if (err.response?.status === 400) {
+        setError("Неверное имя пользователя или пароль");
+      } else {
+        setError("Ошибка сервера при входе. Попробуйте позже.");
+      }
     } finally {
       setLoading(false);
     }

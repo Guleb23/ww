@@ -1,11 +1,21 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { axiosClient } from "../api/axiosClient";
 
 const AuthContext = createContext(null);
 
+const saveSession = (data, username) => {
+  localStorage.setItem("accessToken", data.accessToken);
+  localStorage.setItem("refreshToken", data.refreshToken);
+  const userInfo = { username };
+  localStorage.setItem("user", JSON.stringify(userInfo));
+  return userInfo;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const loginInFlight = useRef(false);
+  const registerInFlight = useRef(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -16,29 +26,39 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (username, password) => {
-    const response = await axiosClient.post("/api/auth/login", {
-      username,
-      password,
-    });
-    const data = response.data;
+    if (loginInFlight.current) {
+      return;
+    }
 
-    localStorage.setItem("accessToken", data.accessToken);
-    localStorage.setItem("refreshToken", data.refreshToken);
-    // В токене есть userId, но проще сохранить из ответа, если он там есть.
-    // В текущем API userId возвращается только в refresh-запросе, поэтому
-    // будем восстанавливать позже при первом refresh, а пока сохраним username.
-    const userInfo = { username };
-    localStorage.setItem("user", JSON.stringify(userInfo));
-    setUser(userInfo);
+    loginInFlight.current = true;
+    try {
+      const response = await axiosClient.post("/api/auth/login", {
+        username,
+        password,
+      });
+      const userInfo = saveSession(response.data, username);
+      setUser(userInfo);
+    } finally {
+      loginInFlight.current = false;
+    }
   };
 
   const register = async (username, password) => {
-    await axiosClient.post("/api/auth/register", {
-      username,
-      password,
-    });
-    // После регистрации можно сразу логинить
-    await login(username, password);
+    if (registerInFlight.current) {
+      return;
+    }
+
+    registerInFlight.current = true;
+    try {
+      const response = await axiosClient.post("/api/auth/register", {
+        username,
+        password,
+      });
+      const userInfo = saveSession(response.data, username);
+      setUser(userInfo);
+    } finally {
+      registerInFlight.current = false;
+    }
   };
 
   const logout = () => {
@@ -67,4 +87,3 @@ export const useAuth = () => {
   }
   return ctx;
 };
-

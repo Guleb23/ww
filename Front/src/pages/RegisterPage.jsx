@@ -17,6 +17,7 @@ export const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
     if (form.password !== form.confirm) {
       setError("Пароли не совпадают");
@@ -28,7 +29,12 @@ export const RegisterPage = () => {
       navigate("/");
     } catch (err) {
       console.error(err);
-      setError("Ошибка регистрации (возможно, имя уже занято)");
+      const message = err.response?.data;
+      if (typeof message === "string" && message.toLowerCase().includes("username")) {
+        setError("Имя пользователя уже занято");
+      } else {
+        setError("Не удалось зарегистрироваться. Попробуйте ещё раз.");
+      }
     } finally {
       setLoading(false);
     }

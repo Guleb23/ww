@@ -29,7 +29,7 @@ namespace jjj.Services
             return await CreateTokenResponse(user);
         }
 
-        private async Task<TokenResponseDto> CreateTokenResponse(User? user)
+        private async Task<TokenResponseDto> CreateTokenResponse(User user)
         {
             return new TokenResponseDto
             {
@@ -38,24 +38,24 @@ namespace jjj.Services
             };
         }
 
-        public async Task<User?> RegisterAsync(UserDto request)
+        public async Task<TokenResponseDto?> RegisterAsync(UserDto request)
         {
             if (await context.Users.AnyAsync(u => u.Username == request.Username))
             {
                 return null;
             }
 
-            var user = new User();
-            var hashedPassword = new PasswordHasher<User>()
-                .HashPassword(user, request.Password);
-
-            user.Username = request.Username;
-            user.PasswordHash = hashedPassword;
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Username = request.Username,
+                PasswordHash = new PasswordHasher<User>().HashPassword(new User(), request.Password)
+            };
 
             context.Users.Add(user);
             await context.SaveChangesAsync();
 
-            return user;
+            return await CreateTokenResponse(user);
         }
 
         public async Task<TokenResponseDto?> RefreshTokensAsync(RefreshTokenRequestDto request)
@@ -79,7 +79,7 @@ namespace jjj.Services
             return user;
         }
 
-        private string GenerateRefreshToken()
+        private static string GenerateRefreshToken()
         {
             var randomNumber = new byte[32];
             using var rng = RandomNumberGenerator.Create();
@@ -101,22 +101,32 @@ namespace jjj.Services
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),            };
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            };
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(configuration.GetValue<string>("AppSettings:Token")!));
-
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
+            var key = new SymmetricSecurityKey(GetSigningKeyBytes());
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var tokenDescriptor = new JwtSecurityToken(
-                issuer: configuration.GetValue<string>("AppSettings:Issuer"),
-                audience: configuration.GetValue<string>("AppSettings:Audience"),
+                issuer: configuration["AppSettings:Issuer"],
+                audience: configuration["AppSettings:Audience"],
                 claims: claims,
                 expires: DateTime.UtcNow.AddDays(1),
                 signingCredentials: creds
             );
 
             return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
+        }
+
+        private byte[] GetSigningKeyBytes()
+        {
+            var token = configuration["AppSettings:Token"];
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                throw new InvalidOperationException("AppSettings:Token is not configured.");
+            }
+
+            return Encoding.UTF8.GetBytes(token);
         }
     }
 }

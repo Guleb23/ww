@@ -74,8 +74,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("allowall");
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -84,6 +88,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
     db.Database.Migrate();
+    await db.Database.ExecuteSqlRawAsync(
+        """CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Username" ON "Users" ("Username");""");
 }
 
 app.Run();
